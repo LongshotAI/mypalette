@@ -1,12 +1,17 @@
-'use client';
-
 import { ReactNode } from 'react';
-import { AuthProvider } from '@/lib/auth-context';
+import './globals.css';
+
+// AuthProvider moved to a client component wrapper
+import { ClientAuthProvider } from '@/lib/client-auth-provider';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
+    <html lang="en">
+      <body>
+        <ClientAuthProvider>
+          {children}
+        </ClientAuthProvider>
+      </body>
+    </html>
   );
 }
