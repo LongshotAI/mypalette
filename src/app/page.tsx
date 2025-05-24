@@ -5,9 +5,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 
+// Define the type for portfolio items
+interface PortfolioItem {
+  id: string;
+  name: string;
+  artist: string;
+  image: string;
+}
+
 export default function Home() {
   const { user, loading } = useAuth();
-  const [featuredPortfolios, setFeaturedPortfolios] = useState([]);
+  const [featuredPortfolios, setFeaturedPortfolios] = useState<PortfolioItem[]>([]);
   
   useEffect(() => {
     // In a real implementation, this would fetch featured portfolios from the API
