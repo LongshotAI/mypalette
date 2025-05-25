@@ -3,14 +3,25 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, LoginFormValues } from '@/lib/validations';
-import { useRouter } from 'next/navigation';
+import { z } from 'zod';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 
-export default function LoginForm() {
+// Form validation schema
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+export default function LoginPage() {
+  const { signIn } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   
   const {
     register,
@@ -29,96 +40,101 @@ export default function LoginForm() {
     setError(null);
     
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      const { error } = await signIn(data.email, data.password);
       
-      const result = await response.json();
-      
-      if (!response.ok) {
-        setError(result.error || 'Login failed');
-        return;
+      if (error) {
+        throw new Error(error.message);
       }
       
       // Redirect to dashboard on successful login
-      router.push('/dashboard');
+      router.push('/dashboard/profile');
     } catch (err) {
-      setError('An unexpected error occurred');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
-      
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            {...register('email')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          />
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-          )}
-        </div>
-        
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            {...register('password')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          />
-          {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-          )}
-        </div>
-        
-        <div className="flex justify-end">
-          <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
-            Forgot password?
+    <div className="min-h-screen bg-black flex flex-col justify-center items-center px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link href="/">
+            <Image 
+              src="/ppn-logo.png" 
+              alt="MyPalette by PPN" 
+              width={150} 
+              height={50} 
+              className="mx-auto mb-6"
+            />
           </Link>
+          <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
+          <p className="text-gray-400 mt-2">Sign in to your MyPalette account</p>
         </div>
         
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Signing In...' : 'Sign In'}
-        </button>
-      </form>
-      
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link href="/auth/register" className="text-blue-600 hover:text-blue-800 font-medium">
-            Create an account
-          </Link>
-        </p>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-md mb-6">
+            {error}
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+              Email Address
+            </label>
+            <input
+              id="email"
+              type="email"
+              {...register('email')}
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="you@example.com"
+              disabled={isLoading}
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+            )}
+          </div>
+          
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                Password
+              </label>
+              <Link href="/auth/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
+                Forgot password?
+              </Link>
+            </div>
+            <input
+              id="password"
+              type="password"
+              {...register('password')}
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="••••••••"
+              disabled={isLoading}
+            />
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+            )}
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-white text-black py-3 rounded-md font-medium hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        
+        <div className="mt-8 text-center">
+          <p className="text-gray-400">
+            Don't have an account?{' '}
+            <Link href="/auth/register" className="text-blue-400 hover:text-blue-300">
+              Sign up for free
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
